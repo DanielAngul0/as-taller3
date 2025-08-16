@@ -2,7 +2,12 @@
 
 -- Tabla de usuarios
 CREATE TABLE users (
-    -- TODO: Agregar campos para id, username, email, password_hash, created_at
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(120) UNIQUE NOT NULL,
+    password_hash VARCHAR(128) NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabla de productos  
@@ -22,4 +27,4 @@ CREATE TABLE cart_items (
 
 -- TODO: Agregar índices y restricciones de clave foránea
 
--- TODO: Insertar datos de prueba
+-- TODO: Insertar datos de prueba (si o si)
