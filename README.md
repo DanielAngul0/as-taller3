@@ -1,3 +1,8 @@
+## Autor
+### Estudiante: Daniel Andres Angulo Perez
+
+## [@DanielAngul0](https://github.com/DanielAngul0)
+
 # Taller: Aplicación Web Multi-Capa con Contenedores
 
 ## Descripción del Proyecto
