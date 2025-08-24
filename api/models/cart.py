@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-from api.database import Base
+from database import Base
 
 class Cart(Base):
     # Define la tabla de carritos
@@ -15,6 +15,7 @@ class Cart(Base):
     # Relaciona el carrito con el usuario y los items del carrito
     user = relationship("User", back_populates="carts")
     items = relationship("CartItem", back_populates="cart", cascade="all, delete-orphan")
+    
 
 class CartItem(Base):
     # Define la tabla de items del carrito

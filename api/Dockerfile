@@ -1,6 +1,8 @@
-# API
+# api/Dockerfile
+# Dockerfile para la aplicación FastAPI
 FROM python:3.11-slim
 
+# Establecer el directorio de trabajo
 WORKDIR /app
 
 # Instalar dependencias del sistema

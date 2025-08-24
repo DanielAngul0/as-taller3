@@ -1,4 +1,5 @@
-# Database
+# database/Dockerfile
+# Dockerfile para la base de datos PostgreSQL
 FROM postgres:15-alpine
 
 # Copiar scripts de inicialización
