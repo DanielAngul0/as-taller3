@@ -16,7 +16,7 @@ services:
     networks:
       - tienda_network
     ports:
-      - "5432:5432"
+      - "5432:5432" # exponer puerto para acceso externo
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U tienda_user -d tienda_db"]
@@ -35,7 +35,7 @@ services:
     networks:
       - tienda_network
     ports:
-      - "8000:8000"
+      - "8000:8000" # exponer puerto para probar vinculo con la base de datos
 
   # Servicio de aplicación web (frontend)
   webapp:
@@ -46,6 +46,11 @@ services:
       - api
     networks:
       - tienda_network
+    ports:
+      - "5000:5000"  # exponer puerto para probar vinculo con la API
+    # ports:
+    #   - "8080:5000"
+
 
   # proxy inverso Nginx
   proxy:

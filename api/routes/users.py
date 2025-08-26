@@ -2,29 +2,57 @@ from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from database import get_db
 from models.user import User
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
+import os
 
 # Crear el router
 router = APIRouter()
+
+# Configuración JWT
+SECRET_KEY = os.getenv("SECRET_KEY", "tu_clave_secreta_muy_segura")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Configuración para hashing de contraseñas
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 # Registro de usuario
 @router.post("/register")
 async def register_user(
     username: str = Body(...),
     email: str = Body(...),
-    password_hash: str = Body(...),
+    password: str = Body(...), 
     db: Session = Depends(get_db)
 ):
     # Verificar si el usuario o email ya existen
     if db.query(User).filter((User.username == username) | (User.email == email)).first():
         raise HTTPException(status_code=400, detail="Usuario o email ya registrado")
+    
+    # Hashear la contraseña antes de guardarla
+    hashed_password = hash_password(password)
 
     # Crear usuario
-    user = User(username=username, email=email, password_hash=password_hash)
+    user = User(username=username, email=email, password_hash=hashed_password)
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    return {"id": user.id, "username": user.username, "email": user.email}
+    return {"message": "Usuario registrado exitosamente", "user_id": user.id}
 
 
 
@@ -32,18 +60,23 @@ async def register_user(
 @router.post("/login")
 async def login_user(
     username: str = Body(...),
-    password_hash: str = Body(...),
+    password: str = Body(...),
     db: Session = Depends(get_db)
 ):
-    user = db.query(User).filter(
-        User.username == username, 
-        User.password_hash == password_hash
-    ).first()
+    
+    # Buscar usuario por username
+    user = db.query(User).filter(User.username == username).first()
 
-    if not user:
+    if not user or not verify_password(password, user.password_hash):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
 
-    return {"id": user.id, "username": user.username, "email": user.email}
+    access_token = create_access_token(data={"sub": user.username})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user_id": user.id,
+        "username": user.username
+    }
 
 
 

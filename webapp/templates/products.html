@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <h2>Productos</h2>
+
+  {% if products %}
+    <div class="product-list">
+      {% for product in products %}
+        <div class="product-card">
+          <h3>{{ product.name }}</h3>
+          <p>{{ product.description }}</p>
+          <p><strong>${{ product.price }}</strong></p>
+
+          <form action="{{ url_for('add_to_cart', product_id=product.id) }}" method="post">
+            <button type="submit">Añadir al carrito</button>
+          </form>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p>No hay productos disponibles.</p>
+  {% endif %}
+{% endblock %}

@@ -19,4 +19,7 @@ class User(Base):
     
     # Representa el objeto User como una cadena
     def __repr__(self):
-        return f"<User(id={self.id}, username='{self.username}', email='{self.email}', is_active"
+        return (
+            f"<User(id={self.id}, username='{self.username}', "
+            f"email='{self.email}', is_active={self.is_active})>"
+        )
