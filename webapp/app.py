@@ -185,12 +185,24 @@ def cart():
     status, data = api_request("/carts")
     
     if status == 200:
-        cart_items = data
+        # Ajustar según la estructura de tu API
+        if isinstance(data, dict):
+            cart_items = data.get('items', [])
+            total = data.get('total', 0)
+        elif isinstance(data, list):
+            cart_items = data
+            # Calcular el total si no viene en la respuesta
+            total = sum(item.get('price', 0) * item.get('quantity', 0) for item in data)
+        else:
+            cart_items = []
+            total = 0
     else:
         cart_items = []
-        flash('Error al cargar el carrito', 'danger')
+        total = 0
+        if status != 0:  # Solo mostrar error si no es error de conexión
+            flash('Error al cargar el carrito', 'danger')
     
-    return render_template('cart.html', cart_items=cart_items)
+    return render_template('cart.html', cart_items=cart_items, total=total)
 
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
@@ -212,6 +224,34 @@ def add_to_cart(product_id):
         flash(f'Error: {error_msg}', 'danger')
     
     return redirect(url_for('products'))
+
+@app.route('/update-cart-item/<int:item_id>', methods=['POST'])
+# Ajax endpoint para actualizar cantidad de un item en el carrito
+def update_cart_item(item_id):
+    if not is_logged_in():
+        return jsonify({"success": False, "message": "Debe iniciar sesión"})
+    
+    quantity = request.json.get('quantity', 1)
+    
+    status, data = api_request(f"/carts/items/{item_id}", method='PUT', data={"quantity": quantity})
+    
+    if status == 200:
+        return jsonify({"success": True, "new_total": data.get('total', 0)})
+    else:
+        return jsonify({"success": False, "message": data.get('detail', 'Error al actualizar')})
+
+@app.route('/remove-from-cart/<int:item_id>', methods=['POST'])
+# Ajax endpoint para eliminar un item del carrito
+def remove_from_cart(item_id):
+    if not is_logged_in():
+        return jsonify({"success": False, "message": "Debe iniciar sesión"})
+    
+    status, data = api_request(f"/carts/items/{item_id}", method='DELETE')
+    
+    if status == 200:
+        return jsonify({"success": True, "new_total": data.get('total', 0)})
+    else:
+        return jsonify({"success": False, "message": data.get('detail', 'Error al eliminar')})
 
 
 if __name__ == '__main__':
