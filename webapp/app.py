@@ -28,33 +28,33 @@ def api_request(endpoint, method='GET', data=None, headers=None, params=None, ti
     if 'access_token' in session:
         final_headers['Authorization'] = f"Bearer {session['access_token']}"
     
-    # Si es una solicitud GET, agregar user_id a los parámetros si está disponible
-    if method.upper() == 'GET' and 'user_id' in session:
+    # Para todas las solicitudes, agregar user_id a los parámetros si está disponible
+    if 'user_id' in session:
         params = params or {}
-        params['user_id'] = session['user_id']
+        # Solo agregar user_id si no está ya en los datos o params
+        if method.upper() in ['GET', 'DELETE']:
+            params['user_id'] = session['user_id']
+        elif method.upper() in ['POST', 'PUT'] and isinstance(data, dict):
+            if 'user_id' not in data:
+                data['user_id'] = session['user_id']
     
     try:
         method = method.upper()
         if method == 'GET':
             resp = requests.get(url, headers=final_headers, params=params, timeout=timeout)
         elif method == 'POST':
-            # Para POST, agregar user_id al cuerpo de la solicitud si está disponible
-            if data is None:
-                data = {}
-            if 'user_id' in session and isinstance(data, dict):
-                data['user_id'] = session['user_id']
             resp = requests.post(url, headers=final_headers, json=data, params=params, timeout=timeout)
         elif method == 'PUT':
-            if data is None:
-                data = {}
-            if 'user_id' in session and isinstance(data, dict):
-                data['user_id'] = session['user_id']
             resp = requests.put(url, headers=final_headers, json=data, params=params, timeout=timeout)
         elif method == 'DELETE':
             resp = requests.delete(url, headers=final_headers, params=params, timeout=timeout)
         else:
             return 0, {"error": f"Método HTTP no soportado: {method}"}
 
+        # Manejar respuestas vacías (como 204 No Content)
+        if resp.status_code == 204:
+            return resp.status_code, {}
+            
         try:
             response_data = resp.json()
             return resp.status_code, response_data
@@ -276,20 +276,23 @@ def add_to_cart(product_id):
     
     return redirect(url_for('products'))
 
-@app.route('/update-cart-item/<int:item_id>', methods=['POST'])
-def update_cart_item(item_id):
+# Ruta para vaciar el carrito
+@app.route('/clear-cart', methods=['POST'])
+def clear_cart():
     if not is_logged_in():
         return jsonify({"success": False, "message": "Debe iniciar sesión"})
     
-    quantity = request.json.get('quantity', 1)
+    # Llamar a la API para vaciar el carrito - CORREGIDO: usar query params en lugar de body
+    status, data = api_request("/carts/", method='DELETE', params={"user_id": session['user_id']})
     
-    status, data = api_request(f"/carts/items/{item_id}", method='PUT', data={"quantity": quantity})
-    
-    if status == 200:
-        return jsonify({"success": True, "new_total": data.get('total', 0)})
+    if status == 200 or status == 204:
+        flash('Carrito vaciado correctamente', 'success')
+        return jsonify({"success": True})
     else:
-        return jsonify({"success": False, "message": data.get('detail', 'Error al actualizar')})
+        error_msg = data.get('detail', 'Error al vaciar el carrito') if isinstance(data, dict) else str(data)
+        return jsonify({"success": False, "message": error_msg})
 
+# Ruta para eliminar un item del carrito
 @app.route('/remove-from-cart/<int:item_id>', methods=['POST'])
 def remove_from_cart(item_id):
     if not is_logged_in():
@@ -298,9 +301,55 @@ def remove_from_cart(item_id):
     status, data = api_request(f"/carts/items/{item_id}", method='DELETE')
     
     if status == 200:
-        return jsonify({"success": True, "new_total": data.get('total', 0)})
+        flash('Producto eliminado del carrito', 'success')
+        return jsonify({"success": True})
     else:
-        return jsonify({"success": False, "message": data.get('detail', 'Error al eliminar')})
+        error_msg = data.get('detail', 'Error al eliminar') if isinstance(data, dict) else str(data)
+        return jsonify({"success": False, "message": error_msg})
+
+# Ruta para actualizar la cantidad de un item
+@app.route('/update-cart-item/<int:item_id>', methods=['POST'])
+def update_cart_item(item_id):
+    if not is_logged_in():
+        return jsonify({"success": False, "message": "Debe iniciar sesión"})
+    
+    quantity = request.json.get('quantity', 1)
+    
+    # Validar que la cantidad sea al menos 1
+    if quantity < 1:
+        return jsonify({"success": False, "message": "La cantidad debe ser al menos 1"})
+    
+    status, data = api_request(f"/carts/items/{item_id}", method='PUT', data={"quantity": quantity})
+    
+    if status == 200:
+        # Obtener el carrito actualizado para calcular el nuevo total
+        cart_status, cart_data = api_request("/carts")
+        new_total = 0
+        
+        if cart_status == 200:
+            # Obtener los items del carrito
+            if isinstance(cart_data, dict) and 'items' in cart_data:
+                raw_items = cart_data.get('items', [])
+            elif isinstance(cart_data, list):
+                raw_items = cart_data
+            else:
+                raw_items = []
+            
+            # Para cada item, obtener la información completa del producto
+            for item in raw_items:
+                product_id = item.get('product_id')
+                if product_id:
+                    # Obtener información del producto
+                    product_status, product_data = api_request(f"/products/{product_id}")
+                    if product_status == 200:
+                        price = float(product_data.get('price', 0))
+                        new_total += price * item.get('quantity', 0)
+        
+        flash('Cantidad actualizada correctamente', 'success')
+        return jsonify({"success": True, "new_total": new_total})
+    else:
+        error_msg = data.get('detail', 'Error al actualizar') if isinstance(data, dict) else str(data)
+        return jsonify({"success": False, "message": error_msg})
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
