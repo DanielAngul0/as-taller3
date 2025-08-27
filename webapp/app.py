@@ -23,16 +23,35 @@ def api_request(endpoint, method='GET', data=None, headers=None, params=None, ti
     endpoint = endpoint.lstrip('/')
     url = f"{base_url}{API_PREFIX}/{endpoint}"
     
+    # Preparar headers con autenticación si existe
+    final_headers = headers or {}
+    if 'access_token' in session:
+        final_headers['Authorization'] = f"Bearer {session['access_token']}"
+    
+    # Si es una solicitud GET, agregar user_id a los parámetros si está disponible
+    if method.upper() == 'GET' and 'user_id' in session:
+        params = params or {}
+        params['user_id'] = session['user_id']
+    
     try:
         method = method.upper()
         if method == 'GET':
-            resp = requests.get(url, headers=headers, params=params or data, timeout=timeout)
+            resp = requests.get(url, headers=final_headers, params=params, timeout=timeout)
         elif method == 'POST':
-            resp = requests.post(url, headers=headers, json=data, params=params, timeout=timeout)
+            # Para POST, agregar user_id al cuerpo de la solicitud si está disponible
+            if data is None:
+                data = {}
+            if 'user_id' in session and isinstance(data, dict):
+                data['user_id'] = session['user_id']
+            resp = requests.post(url, headers=final_headers, json=data, params=params, timeout=timeout)
         elif method == 'PUT':
-            resp = requests.put(url, headers=headers, json=data, params=params, timeout=timeout)
+            if data is None:
+                data = {}
+            if 'user_id' in session and isinstance(data, dict):
+                data['user_id'] = session['user_id']
+            resp = requests.put(url, headers=final_headers, json=data, params=params, timeout=timeout)
         elif method == 'DELETE':
-            resp = requests.delete(url, headers=headers, params=params, timeout=timeout)
+            resp = requests.delete(url, headers=final_headers, params=params, timeout=timeout)
         else:
             return 0, {"error": f"Método HTTP no soportado: {method}"}
 
@@ -47,67 +66,51 @@ def api_request(endpoint, method='GET', data=None, headers=None, params=None, ti
 
 
 def is_logged_in():
-    """Por ahora: sesión activa si existe 'username' en session."""
-    return 'username' in session
+    """Verifica si el usuario tiene una sesión activa"""
+    return 'username' in session and 'user_id' in session and 'access_token' in session
 
 
-# --- Rutas (esqueleto) ---
+# --- Rutas ---
 @app.route("/")
 def index():
     try:
-        # Depuración: imprimir la URL que se está llamando
-        print(f"Llamando a: {API_URL}{API_PREFIX}/products", flush=True)
-        
         status, data = api_request("/products")
-        print(f"Status: {status}, Data: {data}, Type: {type(data)}", flush=True)
+        print(f"DEBUG - Index API Response: Status={status}, Data type: {type(data)}", flush=True)
         
-        # Verificamos si la respuesta es exitosa
+        products = []
         if status == 200:
-            # Verificamos si la respuesta es una lista
             if isinstance(data, list):
                 products = data
             elif isinstance(data, dict):
-                # Si es un diccionario, intentamos extraer la lista de productos
                 products = data.get('products', [])
-                if not isinstance(products, list):
-                    products = []
-            else:
-                products = []
-        else:
+        
+        # Aseguramos que products sea una lista
+        if not isinstance(products, list):
             products = []
-            flash('Error al obtener productos de la API', 'danger')
             
     except Exception as e:
         print("Error al consumir API:", e, flush=True)
         products = []
         flash('Error de conexión con la API', 'danger')
 
-    # Aseguramos que products sea una lista antes de hacer el slice
-    if not isinstance(products, list):
-        products = []
-    
-    # Aquí limitamos a los primeros 3 productos destacados
+    # Limitar a los primeros 3 productos destacados
     destacados = products[:3]
-
     return render_template("index.html", products=destacados)
 
 @app.route('/products')
 def products():
-    # Llamada a la API para obtener productos
     status, data = api_request("/products")
-
+    print(f"DEBUG - Products API Response: Status={status}", flush=True)
+    
+    productos = []
     if status == 200:
         if isinstance(data, list):
             productos = data
         elif isinstance(data, dict):
             productos = data.get('products', [])
-            if not isinstance(productos, list):
-                productos = []
-        else:
-            productos = []
     else:
-        flash(f"Error al cargar productos: {data}", "danger")
-        productos = []
+        error_msg = data.get('detail', 'Error desconocido') if isinstance(data, dict) else str(data)
+        flash(f"Error al cargar productos: {error_msg}", "danger")
 
     return render_template('products.html', products=productos)
 
@@ -126,8 +129,12 @@ def login():
             "password": password
         })
 
+        print(f"DEBUG - Login API Response: Status={status}, Data={data}", flush=True)
+        
         if status == 200:
             session['username'] = data.get('username', '')
+            session['user_id'] = data.get('user_id', '')
+            session['access_token'] = data.get('access_token', '')
             flash('Sesión iniciada con éxito', 'success')
             return redirect(url_for('index'))
         else:
@@ -135,7 +142,6 @@ def login():
             flash(f'Error: {error_msg}', 'danger')
 
     return render_template('login.html')
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -168,7 +174,6 @@ def register():
 
     return render_template('register.html')
 
-
 @app.route('/logout')
 def logout():
     session.clear()
@@ -183,24 +188,66 @@ def cart():
     
     # Obtener carrito del usuario
     status, data = api_request("/carts")
+    print(f"DEBUG - Cart API Response: Status={status}, Data={data}", flush=True)
+    
+    cart_items = []
+    total = 0
     
     if status == 200:
-        # Ajustar según la estructura de tu API
-        if isinstance(data, dict):
-            cart_items = data.get('items', [])
-            total = data.get('total', 0)
+        # Obtener los items del carrito
+        if isinstance(data, dict) and 'items' in data:
+            raw_items = data.get('items', [])
         elif isinstance(data, list):
-            cart_items = data
-            # Calcular el total si no viene en la respuesta
-            total = sum(item.get('price', 0) * item.get('quantity', 0) for item in data)
+            raw_items = data
         else:
-            cart_items = []
-            total = 0
+            raw_items = []
+        
+        # Para cada item, obtener la información completa del producto
+        for item in raw_items:
+            product_id = item.get('product_id')
+            if product_id:
+                # Obtener información del producto
+                product_status, product_data = api_request(f"/products/{product_id}")
+                if product_status == 200:
+                    # Combinar la información del item del carrito con la del producto
+                    combined_item = {
+                        'id': item.get('id'),
+                        'product_id': product_id,
+                        'product_name': product_data.get('name', 'Producto no disponible'),
+                        'price': float(product_data.get('price', 0)),
+                        'quantity': item.get('quantity', 0),
+                        'added_at': item.get('added_at'),
+                        'image_url': product_data.get('image_url', '')
+                    }
+                    cart_items.append(combined_item)
+                    
+                    # Calcular el total
+                    total += combined_item['price'] * combined_item['quantity']
+                else:
+                    # Si no se puede obtener la información del producto, usar valores por defecto
+                    cart_items.append({
+                        'id': item.get('id'),
+                        'product_id': product_id,
+                        'product_name': 'Producto no disponible',
+                        'price': 0,
+                        'quantity': item.get('quantity', 0),
+                        'added_at': item.get('added_at')
+                    })
+            else:
+                # Item sin product_id
+                cart_items.append({
+                    'id': item.get('id'),
+                    'product_name': 'Producto no disponible',
+                    'price': 0,
+                    'quantity': item.get('quantity', 0),
+                    'added_at': item.get('added_at')
+                })
     else:
-        cart_items = []
-        total = 0
-        if status != 0:  # Solo mostrar error si no es error de conexión
-            flash('Error al cargar el carrito', 'danger')
+        error_msg = data.get('detail', 'Error al cargar el carrito') if isinstance(data, dict) else str(data)
+        flash(f'Error: {error_msg}', 'danger')
+    
+    print(f"DEBUG - Final cart items: {cart_items}", flush=True)
+    print(f"DEBUG - Final total: {total}", flush=True)
     
     return render_template('cart.html', cart_items=cart_items, total=total)
 
@@ -212,21 +259,24 @@ def add_to_cart(product_id):
     
     quantity = int(request.form.get('quantity', 1))
     
+    # Llamar a la API para agregar al carrito
     status, data = api_request("/carts/items", method='POST', data={
         "product_id": product_id,
         "quantity": quantity
     })
     
-    if status == 200:
+    print(f"DEBUG - Add to cart API Response: Status={status}, Data={data}", flush=True)
+    
+    # Tanto 200 (OK) como 201 (Created) son respuestas exitosas
+    if status in [200, 201]:
         flash('Producto agregado al carrito', 'success')
     else:
-        error_msg = data.get('detail', 'Error al agregar al carrito')
+        error_msg = data.get('detail', 'Error al agregar al carrito') if isinstance(data, dict) else str(data)
         flash(f'Error: {error_msg}', 'danger')
     
     return redirect(url_for('products'))
 
 @app.route('/update-cart-item/<int:item_id>', methods=['POST'])
-# Ajax endpoint para actualizar cantidad de un item en el carrito
 def update_cart_item(item_id):
     if not is_logged_in():
         return jsonify({"success": False, "message": "Debe iniciar sesión"})
@@ -241,7 +291,6 @@ def update_cart_item(item_id):
         return jsonify({"success": False, "message": data.get('detail', 'Error al actualizar')})
 
 @app.route('/remove-from-cart/<int:item_id>', methods=['POST'])
-# Ajax endpoint para eliminar un item del carrito
 def remove_from_cart(item_id):
     if not is_logged_in():
         return jsonify({"success": False, "message": "Debe iniciar sesión"})
@@ -252,7 +301,6 @@ def remove_from_cart(item_id):
         return jsonify({"success": True, "new_total": data.get('total', 0)})
     else:
         return jsonify({"success": False, "message": data.get('detail', 'Error al eliminar')})
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

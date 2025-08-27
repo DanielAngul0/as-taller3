@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Carrito de Compras{% endblock %}
 {% block content %}
-<div class="container">
+<div class="container mt-4">
     <h2 class="mb-4">Carrito de Compras</h2>
     
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -16,41 +16,37 @@
     {% endwith %}
 
     {% if cart_items and cart_items|length > 0 %}
-        <table class="table table-striped cart-table">
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Precio</th>
-                    <th>Cantidad</th>
-                    <th>Total</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for item in cart_items %}
-                <tr id="cart-item-{{ item.id }}">
-                    <td>{{ item.product_name or item.name }}</td>
-                    <td>${{ item.price }}</td>
-                    <td>
-                        <input type="number" class="form-control cart-quantity-input" data-item-id="{{ item.id }}" value="{{ item.quantity }}" min="1" style="width: 80px;">
-                    </td>
-                    <td>${{ item.price * item.quantity }}</td>
-                    <td>
-                        <button class="btn btn-danger btn-sm remove-from-cart-btn" data-item-id="{{ item.id }}">Eliminar</button>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="3" class="text-right"><strong>Total:</strong></td>
-                    <td><strong>${{ total }}</strong></td>
-                    <td></td>
-                </tr>
-            </tfoot>
-        </table>
-        <div class="text-center mt-4">
-            <a href="{{ url_for('products') }}" class="btn btn-primary">Seguir Comprando</a>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Precio</th>
+                        <th>Cantidad</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in cart_items %}
+                    <tr>
+                        <td>{{ item.product_name }}</td>
+                        <td>${{ "%.2f"|format(item.price) }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>${{ "%.2f"|format(item.price * item.quantity) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
+                        <td><strong>${{ "%.2f"|format(total) }}</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <div class="d-flex justify-content-between mt-4">
+            <a href="{{ url_for('products') }}" class="btn btn-secondary">Seguir Comprando</a>
             <a href="#" class="btn btn-success">Finalizar Compra</a>
         </div>
     {% else %}

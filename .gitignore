@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ignorar test
+run_all_tests.py
+
+# Ocultar archivo Dockerfile de proxy
+/proxy/
