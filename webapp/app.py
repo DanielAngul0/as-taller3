@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import requests
 import os
 from datetime import datetime
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from utils import admin_required
 
 # --- Configuración de la aplicación Flask ---
 app = Flask(__name__)
@@ -97,6 +99,15 @@ def index():
     destacados = products[:3]
     return render_template("index.html", products=destacados)
 
+@app.route('/admin/dashboard')
+@jwt_required()
+@admin_required
+def admin_dashboard():
+    # Obtener datos de la API
+    users = []  # Aquí harías una request a /admin/users
+    products = []  # Aquí harías una request a /api/products
+    return render_template('admin.html', users=users, products=products)
+
 @app.route('/products')
 def products():
     status, data = api_request("/products")
@@ -132,13 +143,25 @@ def login():
         print(f"DEBUG - Login API Response: Status={status}, Data={data}", flush=True)
         
         if status == 200:
-            session['username'] = data.get('username', '')
-            session['user_id'] = data.get('user_id', '')
-            session['access_token'] = data.get('access_token', '')
-            flash('Sesión iniciada con éxito', 'success')
-            return redirect(url_for('index'))
+            # Verificar que data es un diccionario antes de acceder a sus propiedades
+            if isinstance(data, dict):
+                session['username'] = data.get('username', '')
+                session['user_id'] = data.get('user_id', '')
+                session['access_token'] = data.get('access_token', '')
+                session['is_admin'] = data.get('is_admin', False)
+                flash('Sesión iniciada con éxito', 'success')
+                return redirect(url_for('index'))
+            else:
+                flash('Error en el formato de respuesta del servidor', 'danger')
         else:
-            error_msg = data.get('detail', 'Error en el inicio de sesión')
+            # Manejar diferentes tipos de respuestas de error
+            if isinstance(data, dict):
+                error_msg = data.get('detail', 'Error en el inicio de sesión')
+            else:
+                # Si data es una cadena (como HTML de error), mostrar un mensaje genérico
+                error_msg = 'Error en el servidor. Por favor, intente más tarde.'
+                print(f"Error detallado del servidor: {data}", flush=True)
+            
             flash(f'Error: {error_msg}', 'danger')
 
     return render_template('login.html')

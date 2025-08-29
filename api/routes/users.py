@@ -21,8 +21,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password, hashed_password):
+    """Verifica si una contraseña coincide con su hash"""
     return pwd_context.verify(plain_password, hashed_password)
+
+def get_password_hash(password):
+    """Genera el hash de una contraseña"""
+    return pwd_context.hash(password)
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -94,7 +99,8 @@ async def get_user_profile(
         "id": user.id,
         "username": user.username,
         "email": user.email,
-        "is_active": user.is_active
+        "is_active": user.is_active,
+        "is_admin": user.is_admin 
     }
 
 

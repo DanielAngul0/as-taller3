@@ -29,6 +29,7 @@ as-taller3/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── main.py
+│   ├── __init__.py
 │   ├── models/
 │   │   ├── __init__.py
 │   │   ├── user.py
@@ -50,7 +51,9 @@ as-taller3/
 │   │   ├── login.html
 │   │   ├── register.html
 │   │   ├── products.html
-│   │   └── cart.html
+│   │   ├── cart.html
+│   │   ├── admin.html
+│   │   └── perfil.html
 │   └── static/
 │       ├── css/
 │       │   └── style.css

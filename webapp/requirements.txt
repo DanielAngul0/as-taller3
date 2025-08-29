@@ -1,3 +1,4 @@
 Flask==3.0.0 # Framework web
 requests==2.31.0 # Para hacer peticiones HTTP a la API FastAPI
 python-dotenv==1.0.0 # Para cargar variables de entorno desde un archivo .env
+flask-jwt-extended==4.5.3 # Para manejar la autenticación con JWT

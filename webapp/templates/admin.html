@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+{% block title %}Panel de Administración{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Panel de Administración</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Verificar si el usuario es administrador -->
+    {% if not current_user.is_admin %}
+    <div class="alert alert-danger">
+        <h4><i class="fas fa-exclamation-triangle me-2"></i> Acceso denegado</h4>
+        <p>No tienes permisos de administrador para acceder a esta sección.</p>
+    </div>
+    {% else %}
+    <div class="row">
+        <!-- Sidebar de administración -->
+        <div class="col-md-3">
+            <div class="list-group">
+                <a href="#productos" class="list-group-item list-group-item-action active" data-bs-toggle="tab">
+                    <i class="fas fa-box me-2"></i> Gestionar Productos
+                </a>
+                <a href="#usuarios" class="list-group-item list-group-item-action" data-bs-toggle="tab">
+                    <i class="fas fa-users me-2"></i> Ver Usuarios
+                </a>
+            </div>
+            
+            <!-- Resumen rápido -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6>Resumen del Sistema</h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Usuarios:</strong> {{ users|length }}</p>
+                    <p class="mb-1"><strong>Productos:</strong> {{ products|length }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido de administración -->
+        <div class="col-md-9">
+            <div class="tab-content">
+                <!-- Gestión de Productos -->
+                <div class="tab-pane fade show active" id="productos">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h4>Gestión de Productos</h4>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#crearProductoModal">
+                            <i class="fas fa-plus me-2"></i> Nuevo Producto
+                        </button>
+                    </div>
+
+                    {% if products %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Imagen</th>
+                                    <th>Nombre</th>
+                                    <th>Precio</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products %}
+                                <tr>
+                                    <td>{{ product.id }}</td>
+                                    <td>
+                                        {% if product.image_url %}
+                                        <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                        <div class="bg-secondary d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                            <i class="fas fa-image text-white"></i>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ product.name }}</td>
+                                    <td>${{ "%.2f"|format(product.price) }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editarProductoModal" 
+                                                data-id="{{ product.id }}" data-name="{{ product.name }}" 
+                                                data-price="{{ product.price }}" data-description="{{ product.description }}"
+                                                data-image-url="{{ product.image_url }}">
+                                            <i class="fas fa-edit"></i> Editar
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#eliminarProductoModal" 
+                                                data-id="{{ product.id }}" data-name="{{ product.name }}">
+                                            <i class="fas fa-trash"></i> Eliminar
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No hay productos registrados en el sistema.
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Visualización de Usuarios -->
+                <div class="tab-pane fade" id="usuarios">
+                    <h4 class="mb-4">Usuarios Registrados</h4>
+                    
+                    {% if users %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Es Administrador</th>
+                                    <th>Fecha de Registro</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in users %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>{{ user.name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        {% if user.is_admin %}
+                                        <span class="badge bg-success">Sí</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">No</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ user.created_at.strftime('%d/%m/%Y') if user.created_at else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">
+                        No hay usuarios registrados en el sistema.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Modal para Crear Producto -->
+<div class="modal fade" id="crearProductoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nuevo Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('create_product') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Nombre del Producto *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="price" class="form-label">Precio *</label>
+                        <input type="number" step="0.01" class="form-control" id="price" name="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="image_url" class="form-label">URL de Imagen</label>
+                        <input type="url" class="form-control" id="image_url" name="image_url" placeholder="https://ejemplo.com/imagen.jpg">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Crear Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Editar Producto -->
+<div class="modal fade" id="editarProductoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Producto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('update_product') }}">
+                <div class="modal-body">
+                    <input type="hidden" id="edit_id" name="id">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Nombre del Producto *</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_description" class="form-label">Descripción</label>
+                        <textarea class="form-control" id="edit_description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_price" class="form-label">Precio *</label>
+                        <input type="number" step="0.01" class="form-control" id="edit_price" name="price" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_image_url" class="form-label">URL de Imagen</label>
+                        <input type="url" class="form-control" id="edit_image_url" name="image_url" placeholder="https://ejemplo.com/imagen.jpg">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Eliminar Producto -->
+<div class="modal fade" id="eliminarProductoModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('delete_product') }}">
+                <div class="modal-body">
+                    <input type="hidden" id="delete_id" name="id">
+                    <p>¿Estás seguro de que deseas eliminar el producto "<span id="delete_name"></span>"?</p>
+                    <p class="text-danger">Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar Producto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejar la edición de productos
+    var editProductModal = document.getElementById('editarProductoModal');
+    if (editProductModal) {
+        editProductModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-id');
+            var name = button.getAttribute('data-name');
+            var price = button.getAttribute('data-price');
+            var description = button.getAttribute('data-description');
+            var imageUrl = button.getAttribute('data-image-url');
+            
+            var modal = this;
+            modal.querySelector('#edit_id').value = id;
+            modal.querySelector('#edit_name').value = name;
+            modal.querySelector('#edit_price').value = price;
+            modal.querySelector('#edit_description').value = description || '';
+            modal.querySelector('#edit_image_url').value = imageUrl || '';
+        });
+    }
+    
+    // Manejar la eliminación de productos
+    var deleteProductModal = document.getElementById('eliminarProductoModal');
+    if (deleteProductModal) {
+        deleteProductModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var id = button.getAttribute('data-id');
+            var name = button.getAttribute('data-name');
+            
+            var modal = this;
+            modal.querySelector('#delete_id').value = id;
+            modal.querySelector('#delete_name').textContent = name;
+        });
+    }
+    
+    // Activar pestañas al hacer clic en los enlaces del sidebar
+    const triggerTabList = document.querySelectorAll('.list-group-item');
+    triggerTabList.forEach(triggerEl => {
+        triggerEl.addEventListener('click', event => {
+            event.preventDefault();
+            triggerTabList.forEach(item => item.classList.remove('active'));
+            triggerEl.classList.add('active');
+        });
+    });
+});
+</script>
+{% endblock %}

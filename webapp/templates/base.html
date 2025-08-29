@@ -43,6 +43,13 @@
                             <a class="nav-link" href="{{ url_for('register') }}">Registrarse</a>
                         </li>
                     {% endif %}
+                    {% if session.get('username') and session.get('is_admin') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                            <i class="fas fa-cog"></i> Panel Admin
+                        </a>
+                    </li>
+                    {% endif %}
                 </ul>
             </div>
         </div>

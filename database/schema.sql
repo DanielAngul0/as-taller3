@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(120) UNIQUE NOT NULL,
     password_hash VARCHAR(128) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
+    is_admin BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -28,7 +29,7 @@ CREATE TABLE IF NOT EXISTS carts (
 );
 
 -- Tabla de items del carrito
-CREATE  IF NOT EXISTS cart_items (
+CREATE TABLE IF NOT EXISTS cart_items (
     id SERIAL PRIMARY KEY,
     cart_id INTEGER NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
     product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -55,10 +56,12 @@ CREATE INDEX IF NOT EXISTS idx_cart_items_product_id ON cart_items(product_id);
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM users WHERE username = 'juan') THEN
-        INSERT INTO users (username, email, password_hash) VALUES
-        ('juan', 'juan@example.com', 'hash1'),
-        ('maria', 'maria@example.com', 'hash2'),
-        ('pedro', 'pedro@example.com', 'hash3');
+        INSERT INTO users (username, email, password_hash, is_active, is_admin)
+        VALUES
+            ('admin', 'admin@example.com', 'hash_admin', TRUE, TRUE),
+            ('juan', 'juan@example.com', 'hash1', TRUE, FALSE),
+            ('maria', 'maria@example.com', 'hash2', TRUE, FALSE),
+            ('pedro', 'pedro@example.com', 'hash3', TRUE, FALSE);
     END IF;
 END $$;
 
