@@ -19,6 +19,7 @@ Este taller te guiará en la construcción de una tienda virtual utilizando arqu
 ```
 as-taller3/
 ├── .env.example
+├── .gitignore
 ├── README.md
 ├── docker-compose.yml
 ├── database/
@@ -45,7 +46,14 @@ as-taller3/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   ├── app.py
+│   ├── utils.py
+│   ├── __init__.py
 │   ├── templates/
+│   │   ├── admin/product_management/
+│   │   │   ├── create_product.html
+│   │   │   ├── delete_product.html
+│   │   │   └── edit_product.html
+│   │   │
 │   │   ├── base.html
 │   │   ├── index.html
 │   │   ├── login.html

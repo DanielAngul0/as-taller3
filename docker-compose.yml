@@ -1,6 +1,3 @@
-# Docker Compose conrifurado para una aplicación web con base de datos PostgreSQL, API en FastAPI, frontend y un proxy inverso Nginx.
-version: '3.8'
-
 # Definición de los servicios
 services:
 
@@ -53,14 +50,14 @@ services:
 
 
   # proxy inverso Nginx
-  proxy:
-    build: ./proxy
-    ports:
-      - "80:80"
-    depends_on:
-      - webapp
-    networks:
-      - tienda_network
+  # proxy:
+  # build: ./proxy
+  # ports:
+  # - "80:80"
+  # depends_on:
+  # - webapp
+  # networks:
+  # - tienda_network
 
 volumes:
   postgres_data:
