@@ -5,4 +5,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 SET timezone = 'America/Bogota';
 
 -- Crear la base de datos si no existe
-CREATE DATABASE IF NOT EXISTS tienda_db;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT FROM pg_database WHERE datname = 'tienda_db'
+    ) THEN
+        CREATE DATABASE tienda_db;
+    END IF;
+END
+$$;
+-- NOTA: La conexión a la base de datos tienda_db se realiza en schema.sql

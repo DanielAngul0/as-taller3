@@ -74,7 +74,8 @@ BEGIN
         INSERT INTO products (name, description, price, stock, image_url) VALUES
         ('Laptop', 'Laptop potente para trabajo y juegos', 1200.00, 10, 'https://www.professionalwireless.com.co/wp-content/uploads/2024/09/ENVY-16-H1053DX_40GB-300x300.png'),
         ('Mouse', 'Mouse inalámbrico ergonómico', 25.50, 50, 'https://corporativo.tecnoplaza.com.co/wp-content/uploads/2019/01/MOUSE-LOGITECH-M185-NEGRO-300x300.jpg'),
-        ('Teclado', 'Teclado mecánico retroiluminado', 75.00, 30, 'https://tecnomarketink.co/wp-content/uploads/2025/02/combo-inalambrico-mouse-con-teclado-pop-icon-rosado-y-blanco-logitech-tecnomarketink-300x300.png');
+        ('Teclado', 'Teclado mecánico retroiluminado', 75.00, 30, 'https://tecnomarketink.co/wp-content/uploads/2025/02/combo-inalambrico-mouse-con-teclado-pop-icon-rosado-y-blanco-logitech-tecnomarketink-300x300.png'),
+        ('NVIDIA BATTLEBOX ULTIMATE', 'PC Oficial de NVIDIA con GeForce RTX™ 4080 SUPER', 897.00, 4, 'https://gtech.systems/wp-content/uploads/2019/05/Ult-430x430.pn');
     END IF;
 END $$;
 
