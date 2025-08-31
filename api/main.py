@@ -21,7 +21,7 @@ app.add_middleware(
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(products.router, prefix="/api/v1/products", tags=["products"])
 app.include_router(carts.router, prefix="/api/v1/carts", tags=["carts"])
-app.include_router(admin_router)
+app.include_router(admin_router, prefix="/api/v1/admin", tags=["admin"])
 
 @app.get("/")
 async def root():

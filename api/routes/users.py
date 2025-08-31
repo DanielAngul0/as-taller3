@@ -80,7 +80,8 @@ async def login_user(
         "access_token": access_token,
         "token_type": "bearer",
         "user_id": user.id,
-        "username": user.username
+        "username": user.username,
+        "is_admin": user.is_admin
     }
 
 
@@ -141,7 +142,8 @@ async def list_users(db: Session = Depends(get_db)):
             "id": user.id,
             "username": user.username,
             "email": user.email,
-            "is_active": user.is_active
+            "is_active": user.is_active,
+            "is_admin": user.is_admin
         }
         for user in users
     ]
