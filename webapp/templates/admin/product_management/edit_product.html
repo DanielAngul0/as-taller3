@@ -5,7 +5,7 @@
                 <h5 class="modal-title">Editar Producto</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ url_for('update_product') }}" method="POST">
+            <form action="{{ url_for('update_product_admin') }}" method="POST">
                 <input type="hidden" id="edit_id" name="id">
                 <div class="modal-body">
                     <div class="mb-3">

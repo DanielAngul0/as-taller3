@@ -147,3 +147,85 @@ async def list_users(db: Session = Depends(get_db)):
         }
         for user in users
     ]
+    
+# Obtener información de usuario por ID
+@router.get("/{user_id}")
+async def get_user_by_id(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "is_active": user.is_active,
+        "is_admin": user.is_admin
+    }
+
+# Actualizar información de usuario
+@router.put("/{user_id}")
+async def update_user(
+    user_id: int,
+    username: str = Body(None),
+    email: str = Body(None),
+    current_password: str = Body(None),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Verificar contraseña actual si se proporciona
+    if current_password:
+        if not verify_password(current_password, user.password_hash):
+            raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+    
+    # Actualizar campos si se proporcionan
+    if username is not None:
+        # Verificar si el nuevo nombre de usuario ya existe (excluyendo al usuario actual)
+        existing_user = db.query(User).filter(User.username == username, User.id != user_id).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="El nombre de usuario ya está en uso")
+        user.username = username
+    
+    if email is not None:
+        # Verificar si el nuevo email ya existe (excluyendo al usuario actual)
+        existing_email = db.query(User).filter(User.email == email, User.id != user_id).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="El email ya está en uso")
+        user.email = email
+    
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "is_active": user.is_active,
+        "is_admin": user.is_admin
+    }
+
+# Cambiar contraseña
+@router.post("/{user_id}/change-password")
+async def change_password(
+    user_id: int,
+    current_password: str = Body(...),
+    new_password: str = Body(...),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Verificar contraseña actual
+    if not verify_password(current_password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Contraseña actual incorrecta")
+    
+    # Hashear nueva contraseña
+    hashed_password = get_password_hash(new_password)
+    user.password_hash = hashed_password
+    db.commit()
+    
+    return {"message": "Contraseña cambiada exitosamente"}

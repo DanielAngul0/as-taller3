@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, make_response
 import requests
 import os
 from datetime import datetime
@@ -39,49 +39,57 @@ def api_request(endpoint, method='GET', data=None, headers=None, params=None, ti
     base_url = API_URL.rstrip('/')
     endpoint = endpoint.lstrip('/')
     url = f"{base_url}{API_PREFIX}/{endpoint}"
-   
+
     # Preparar headers con autenticación si existe
-    final_headers = headers or {}
+    final_headers = {}
+    if headers:
+        final_headers.update(headers)
     if 'access_token' in session:
         final_headers['Authorization'] = f"Bearer {session['access_token']}"
-   
-    # Para endpoints específicos que necesitan JSON, establecer el Content-Type
-    if endpoint in ["users/login", "users/register", "admin/products", "carts/items"]:
-        final_headers['Content-Type'] = 'application/json'
-   
+
+    # Para endpoints que esperamos JSON por defecto (se puede mantener para compatibilidad)
+    json_endpoints = ["users/login", "users/register", "admin/products", "carts/items"]
+    if any(ep in endpoint for ep in json_endpoints) or endpoint.startswith(("admin/products/", "carts/items/")):
+        final_headers.setdefault('Content-Type', 'application/json')
+
     try:
         method = method.upper()
+
         if method == 'GET':
             resp = requests.get(url, headers=final_headers, params=params, timeout=timeout)
+
         elif method == 'POST':
-            # Para endpoints que necesitan JSON, usar json=data; para otros, usar data=params
-            if endpoint in ["users/login", "users/register", "admin/products", "carts/items"]:
+            # Si se indicó explícitamente JSON en headers o se pasó un dict en data -> enviar JSON
+            if final_headers.get('Content-Type') == 'application/json' or isinstance(data, dict):
                 resp = requests.post(url, headers=final_headers, json=data, timeout=timeout)
             else:
-                resp = requests.post(url, headers=final_headers, data=params, timeout=timeout)
+                # En caso contrario, enviar form-encoded o params (según se necesite)
+                resp = requests.post(url, headers=final_headers, data=params or data, timeout=timeout)
+
         elif method == 'PUT':
-            # Para endpoints que necesitan JSON, usar json=data
-            if endpoint.startswith("carts/items/"):
-                resp = requests.put(url, headers=final_headers, json=data, timeout=timeout)
-            else:
-                resp = requests.put(url, headers=final_headers, data=params, timeout=timeout)
+            # Para todas las requests PUT, usar json=data
+            resp = requests.put(url, headers=final_headers, json=data, timeout=timeout)
+
         elif method == 'DELETE':
             resp = requests.delete(url, headers=final_headers, params=params, timeout=timeout)
+
         else:
             return 0, {"error": f"Método HTTP no soportado: {method}"}
 
         # Manejar respuestas vacías (como 204 No Content)
         if resp.status_code == 204:
             return resp.status_code, {}
-           
+
         try:
             response_data = resp.json()
             return resp.status_code, response_data
         except ValueError:
             return resp.status_code, resp.text
+
     except requests.RequestException as e:
         print(f"Error en API request: {e}")
         return 0, {"error": str(e)}
+
 
 
 
@@ -121,7 +129,7 @@ def index():
     destacados = products[:3]
     return render_template("index.html", products=destacados)
 
-
+# Ruta para el dashboard de administración
 @app.route('/admin/dashboard')
 @admin_required
 def admin_dashboard():
@@ -132,7 +140,12 @@ def admin_dashboard():
     users = users_data if users_status == 200 else []
     products = products_data if products_status == 200 else []
     
-    return render_template('admin.html', users=users, products=products)
+    # Crear respuesta y evitar caching
+    response = make_response(render_template('admin.html', users=users, products=products))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 @app.route('/products')
@@ -319,6 +332,7 @@ def cart():
    
     return render_template('cart.html', cart_items=cart_items, total=total)
 
+# Ruta para agregar un producto al carrito
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
     if not is_logged_in():
@@ -395,6 +409,80 @@ def update_cart_item(item_id):
         return jsonify({"success": False, "message": error_msg})
 
 
+# Perfil de usuario
+@app.route('/perfil', methods=['GET', 'POST'])
+def perfil():
+    if not is_logged_in():
+        flash('Debe iniciar sesión para acceder a su perfil', 'warning')
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        # Procesar actualización de perfil
+        username = request.form.get('username')
+        email = request.form.get('email')
+        current_password = request.form.get('current_password')
+        
+        # Llamar a la API para actualizar el perfil
+        status, data = api_request(f"/users/{session['user_id']}", method='PUT', data={
+            "username": username,
+            "email": email,
+            "current_password": current_password
+        })
+        
+        if status == 200:
+            session['username'] = username
+            flash('Perfil actualizado correctamente', 'success')
+        else:
+            error_msg = data.get('detail', 'Error al actualizar el perfil')
+            flash(f'Error: {error_msg}', 'danger')
+        
+        return redirect(url_for('perfil'))
+    
+    # Obtener información del usuario
+    status, data = api_request(f"/users/{session['user_id']}")
+    
+    if status == 200:
+        usuario = data
+    else:
+        usuario = {"username": session.get('username', ''), "email": ""}
+        flash('Error al cargar información del perfil', 'danger')
+    
+    return render_template('perfil.html', usuario=usuario)
+
+# Cambiar contraseña
+@app.route('/cambiar-password', methods=['POST'])
+def cambiar_password():
+    if not is_logged_in():
+        return jsonify({"success": False, "message": "Debe iniciar sesión"})
+    
+    current_password = request.form.get('current_password')
+    new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
+    
+    if new_password != confirm_password:
+        flash('Las contraseñas no coinciden', 'danger')
+        return redirect(url_for('perfil'))
+    
+    # Llamar a la API para cambiar la contraseña
+    status, data = api_request(
+        f"/users/{session['user_id']}/change-password", 
+        method='POST', 
+        data={
+            "current_password": current_password,
+            "new_password": new_password
+        },
+        headers={'Content-Type': 'application/json'}
+    )
+    
+    if status == 200:
+        flash('Contraseña cambiada correctamente', 'success')
+    else:
+        error_msg = data.get('detail', 'Error al cambiar la contraseña')
+        flash(f'Error: {error_msg}', 'danger')
+    
+    return redirect(url_for('perfil'))
+
+
 # Crear nuevo producto
 @app.route('/admin/create-product', methods=['POST'])
 @admin_required
@@ -428,24 +516,45 @@ def create_product():
 def update_product_admin():
     try:
         product_id = request.form.get('id')
-        # Usar params en lugar de data para enviar como query parameters
-        params = {
-            "name": request.form.get('name'),
-            "description": request.form.get('description'),
-            "price": request.form.get('price'),
-            "stock": request.form.get('stock'),
-            "image_url": request.form.get('image_url', '')
+        # Validar y convertir datos
+        name = request.form.get('name')
+        description = request.form.get('description')
+        
+        try:
+            price = float(request.form.get('price'))
+        except (TypeError, ValueError):
+            flash('El precio debe ser un número válido', 'danger')
+            return redirect(url_for('admin_dashboard'))
+        
+        try:
+            stock = int(request.form.get('stock'))
+        except (TypeError, ValueError):
+            flash('El stock debe ser un número entero válido', 'danger')
+            return redirect(url_for('admin_dashboard'))
+        
+        image_url = request.form.get('image_url', '')
+        
+        # Usar data en lugar de params para enviar como JSON
+        data = {
+            "name": name,
+            "description": description,
+            "price": price,
+            "stock": stock,
+            "image_url": image_url
         }
         
-        status, data = api_request(f"/admin/products/{product_id}", method='PUT', params=params)
+        print(f"DEBUG - Updating product {product_id} with data: {data}")
+        
+        status, response_data = api_request(f"/admin/products/{product_id}", method='PUT', data=data)
        
         if status == 200:
             flash('Producto actualizado exitosamente', 'success')
         else:
-            error_msg = data.get('detail', 'Error al actualizar el producto')
+            error_msg = response_data.get('detail', 'Error al actualizar el producto')
             flash(f'Error: {error_msg}', 'danger')
    
     except Exception as e:
+        print(f"Error updating product: {e}")
         flash(f'Error al actualizar el producto: {str(e)}', 'danger')
    
     return redirect(url_for('admin_dashboard'))
@@ -510,3 +619,6 @@ def remove_admin(user_id):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
+    
+    
+    

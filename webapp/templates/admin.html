@@ -157,5 +157,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+// JavaScript para manejar la actualización de la página después de editar
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si hay mensajes flash y recargar si es necesario
+    const flashMessages = document.querySelectorAll('.alert');
+    if (flashMessages.length > 0) {
+        // Si hay mensajes de éxito, recargar la página después de un breve delay
+        const successMessages = document.querySelectorAll('.alert-success');
+        if (successMessages.length > 0) {
+            setTimeout(() => {
+                window.location.reload(true); // true fuerza recarga desde el servidor
+            }, 1000);
+        }
+    }
+    
+    // Manejar el cierre del modal de edición
+    const editModal = document.getElementById('editProductModal');
+    if (editModal) {
+        editModal.addEventListener('hidden.bs.modal', function () {
+            // Limpiar el formulario cuando se cierra el modal
+            const form = this.querySelector('form');
+            if (form) {
+                form.reset();
+            }
+        });
+    }
+});
 </script>
 {% endblock %}
