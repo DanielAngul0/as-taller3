@@ -246,7 +246,7 @@ function updateCartQuantity(itemId, quantity) {
     });
 }
 
-// Función para actualizar cantidad en el carrito (desde la página del carrito)
+
 function updateCartItemQuantity(itemId, quantity) {
     return fetch(`/update-cart-item/${itemId}`, {
         method: 'POST',

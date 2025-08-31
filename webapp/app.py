@@ -60,8 +60,8 @@ def api_request(endpoint, method='GET', data=None, headers=None, params=None, ti
             else:
                 resp = requests.post(url, headers=final_headers, data=params, timeout=timeout)
         elif method == 'PUT':
-            # Para endpoints que necesitan JSON, usar json=data; para otros, usar data=params
-            if endpoint.startswith("admin/products/"):
+            # Para endpoints que necesitan JSON, usar json=data
+            if endpoint.startswith("carts/items/"):
                 resp = requests.put(url, headers=final_headers, json=data, timeout=timeout)
             else:
                 resp = requests.put(url, headers=final_headers, data=params, timeout=timeout)
@@ -247,7 +247,7 @@ def logout():
     flash('Sesión cerrada', 'success')
     return redirect(url_for('index'))
 
-
+# Ruta para ver el carrito
 @app.route('/cart')
 def cart():
     if not is_logged_in():
@@ -255,7 +255,7 @@ def cart():
         return redirect(url_for('login'))
    
     # Obtener carrito del usuario
-    status, data = api_request("/carts")
+    status, data = api_request("/carts", params={"user_id": session['user_id']})
     print(f"DEBUG - Cart API Response: Status={status}, Data={data}", flush=True)
    
     cart_items = []
@@ -319,7 +319,6 @@ def cart():
    
     return render_template('cart.html', cart_items=cart_items, total=total)
 
-
 @app.route('/add-to-cart/<int:product_id>', methods=['POST'])
 def add_to_cart(product_id):
     if not is_logged_in():
@@ -330,6 +329,7 @@ def add_to_cart(product_id):
    
     # Llamar a la API para agregar al carrito
     status, data = api_request("/carts/items", method='POST', data={
+        "user_id": session['user_id'],
         "product_id": product_id,
         "quantity": quantity
     })
@@ -345,14 +345,12 @@ def add_to_cart(product_id):
    
     return redirect(url_for('products'))
 
-
 # Ruta para vaciar el carrito
 @app.route('/clear-cart', methods=['POST'])
 def clear_cart():
     if not is_logged_in():
         return jsonify({"success": False, "message": "Debe iniciar sesión"})
    
-    # Llamar a la API para vaciar el carrito - CORREGIDO: usar query params en lugar de body
     status, data = api_request("/carts/", method='DELETE', params={"user_id": session['user_id']})
    
     if status == 200 or status == 204:
@@ -361,7 +359,6 @@ def clear_cart():
     else:
         error_msg = data.get('detail', 'Error al vaciar el carrito') if isinstance(data, dict) else str(data)
         return jsonify({"success": False, "message": error_msg})
-
 
 # Ruta para eliminar un item del carrito
 @app.route('/remove-from-cart/<int:item_id>', methods=['POST'])
@@ -378,38 +375,27 @@ def remove_from_cart(item_id):
         error_msg = data.get('detail', 'Error al eliminar') if isinstance(data, dict) else str(data)
         return jsonify({"success": False, "message": error_msg})
 
-
-# Ruta para actualizar la cantidad de un item
-@app.route('/admin/update-product', methods=['POST'])
-@admin_required
-def update_product():
-    try:
-        product_id = request.form.get('id')
-        # Usar data en lugar de params para enviar como JSON
-        data = {
-            "name": request.form.get('name'),
-            "description": request.form.get('description'),
-            "price": float(request.form.get('price')),
-            "stock": int(request.form.get('stock')),
-            "image_url": request.form.get('image_url', '')
-        }
-        
-        status, response_data = api_request(f"/admin/products/{product_id}", method='PUT', data=data)
-       
-        if status == 200:
-            flash('Producto actualizado exitosamente', 'success')
-        else:
-            error_msg = response_data.get('detail', 'Error al actualizar el producto')
-            flash(f'Error: {error_msg}', 'danger')
+# Ruta para actualizar la cantidad de un item del carrito
+@app.route('/update-cart-item/<int:item_id>', methods=['POST'])
+def update_cart_item(item_id):
+    if not is_logged_in():
+        return jsonify({"success": False, "message": "Debe iniciar sesión"})
    
-    except Exception as e:
-        flash(f'Error al actualizar el producto: {str(e)}', 'danger')
+    quantity = request.json.get('quantity', 1)
+    
+    # Llamar a la API para actualizar la cantidad
+    status, data = api_request(f"/carts/items/{item_id}", method='PUT', data={
+        "quantity": quantity
+    })
    
-    return redirect(url_for('admin_dashboard'))
+    if status == 200:
+        return jsonify({"success": True})
+    else:
+        error_msg = data.get('detail', 'Error al actualizar') if isinstance(data, dict) else str(data)
+        return jsonify({"success": False, "message": error_msg})
 
 
-
-
+# Crear nuevo producto
 @app.route('/admin/create-product', methods=['POST'])
 @admin_required
 def create_product():
