@@ -359,20 +359,29 @@ def add_to_cart(product_id):
    
     return redirect(url_for('products'))
 
-# Ruta para vaciar el carrito
-@app.route('/clear-cart', methods=['POST'])
-def clear_cart():
+# Ruta para actualizar la cantidad de un item del carrito
+@app.route('/update-cart-item/<int:item_id>', methods=['POST'])
+def update_cart_item(item_id):
     if not is_logged_in():
         return jsonify({"success": False, "message": "Debe iniciar sesión"})
-   
-    status, data = api_request("/carts/", method='DELETE', params={"user_id": session['user_id']})
-   
-    if status == 200 or status == 204:
-        flash('Carrito vaciado correctamente', 'success')
-        return jsonify({"success": True})
-    else:
-        error_msg = data.get('detail', 'Error al vaciar el carrito') if isinstance(data, dict) else str(data)
-        return jsonify({"success": False, "message": error_msg})
+    
+    try:
+        quantity = request.json.get('quantity', 1)
+        if quantity < 1:
+            return jsonify({"success": False, "message": "La cantidad debe ser al menos 1"})
+        
+        # Llamar a la API para actualizar la cantidad
+        status, data = api_request(f"/carts/items/{item_id}", method='PUT', data={
+            "quantity": quantity
+        })
+       
+        if status == 200:
+            return jsonify({"success": True})
+        else:
+            error_msg = data.get('detail', 'Error al actualizar') if isinstance(data, dict) else str(data)
+            return jsonify({"success": False, "message": error_msg})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error interno: {str(e)}"})
 
 # Ruta para eliminar un item del carrito
 @app.route('/remove-from-cart/<int:item_id>', methods=['POST'])
@@ -380,33 +389,36 @@ def remove_from_cart(item_id):
     if not is_logged_in():
         return jsonify({"success": False, "message": "Debe iniciar sesión"})
    
-    status, data = api_request(f"/carts/items/{item_id}", method='DELETE')
-   
-    if status == 200:
-        flash('Producto eliminado del carrito', 'success')
-        return jsonify({"success": True})
-    else:
-        error_msg = data.get('detail', 'Error al eliminar') if isinstance(data, dict) else str(data)
-        return jsonify({"success": False, "message": error_msg})
+    try:
+        status, data = api_request(f"/carts/items/{item_id}", method='DELETE')
+       
+        if status == 200 or status == 204:
+            return jsonify({"success": True})
+        elif status == 404:
+            # El item ya no existe, pero lo consideramos éxito
+            return jsonify({"success": True})
+        else:
+            error_msg = data.get('detail', 'Error al eliminar') if isinstance(data, dict) else str(data)
+            return jsonify({"success": False, "message": error_msg})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error interno: {str(e)}"})
 
-# Ruta para actualizar la cantidad de un item del carrito
-@app.route('/update-cart-item/<int:item_id>', methods=['POST'])
-def update_cart_item(item_id):
+# Ruta para vaciar el carrito
+@app.route('/clear-cart', methods=['POST'])
+def clear_cart():
     if not is_logged_in():
         return jsonify({"success": False, "message": "Debe iniciar sesión"})
    
-    quantity = request.json.get('quantity', 1)
-    
-    # Llamar a la API para actualizar la cantidad
-    status, data = api_request(f"/carts/items/{item_id}", method='PUT', data={
-        "quantity": quantity
-    })
-   
-    if status == 200:
-        return jsonify({"success": True})
-    else:
-        error_msg = data.get('detail', 'Error al actualizar') if isinstance(data, dict) else str(data)
-        return jsonify({"success": False, "message": error_msg})
+    try:
+        status, data = api_request("/carts/", method='DELETE', params={"user_id": session['user_id']})
+       
+        if status == 200 or status == 204:
+            return jsonify({"success": True})
+        else:
+            error_msg = data.get('detail', 'Error al vaciar el carrito') if isinstance(data, dict) else str(data)
+            return jsonify({"success": False, "message": error_msg})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Error interno: {str(e)}"})
 
 
 # Perfil de usuario

@@ -50,14 +50,14 @@ services:
 
 
   # proxy inverso Nginx
-  # proxy:
-  # build: ./proxy
-  # ports:
-  # - "80:80"
-  # depends_on:
-  # - webapp
-  # networks:
-  # - tienda_network
+  proxy:
+    build: ./proxy
+    ports:
+      - "80:80"
+    depends_on:
+      - webapp
+    networks:
+      - tienda_network
 
 volumes:
   postgres_data:

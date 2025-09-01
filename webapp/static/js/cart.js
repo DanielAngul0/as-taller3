@@ -1,5 +1,4 @@
-// Funcionalidad JavaScript para la tienda
-
+// static/js/cart.js
 document.addEventListener('DOMContentLoaded', function() {
     initializeCartFunctionality();
 });
@@ -218,10 +217,6 @@ function initializeCartFunctionality() {
         })
         .then(response => {
             if (!response.ok) {
-                // Si el item ya no existe (404), lo eliminamos de todos modos
-                if (response.status === 404) {
-                    return { success: true };
-                }
                 throw new Error('Error en la respuesta del servidor');
             }
             return response.json();
@@ -237,7 +232,7 @@ function initializeCartFunctionality() {
                 // Recalcular el total
                 recalculateTotal();
                 
-                // Cerrar el modal automáticamente
+                // Cerrar el modal
                 $('#removeItemModal').modal('hide');
                 
                 // Actualizar contador de items
@@ -284,7 +279,7 @@ function initializeCartFunctionality() {
                 // Recalcular el total (será 0)
                 recalculateTotal();
                 
-                // Cerrar el modal automáticamente
+                // Cerrar el modal
                 $('#clearCartModal').modal('hide');
                 
                 // Actualizar contador de items
@@ -345,40 +340,69 @@ function initializeCartFunctionality() {
         }
     }
 
-    // Función para mostrar mensajes flash (mejorada)
+    // Función para mostrar mensajes flash
     function showFlashMessage(message, type) {
-        // Eliminar mensajes anteriores para evitar duplicados
-        const existingAlerts = document.querySelectorAll('.flash-message');
-        existingAlerts.forEach(alert => alert.remove());
-        
-        // Crear elemento de alerta
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show flash-message`;
-        alertDiv.role = 'alert';
-        alertDiv.innerHTML = `
-            ${message}
+    // Eliminar mensajes anteriores del mismo tipo para evitar duplicados
+    const existingAlerts = document.querySelectorAll('.flash-toast-message');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    // Crear elemento de alerta con estilos de toast
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `flash-toast-message alert alert-${type} alert-dismissible fade show position-fixed`;
+    alertDiv.role = 'alert';
+    alertDiv.style.cssText = `
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border-radius: 8px;
+        animation: toastSlideIn 0.3s ease-out;
+    `;
+    
+    // Iconos según el tipo de mensaje
+    let icon = 'fa-info-circle';
+    if (type === 'success') icon = 'fa-check-circle';
+    if (type === 'danger') icon = 'fa-exclamation-circle';
+    if (type === 'warning') icon = 'fa-exclamation-triangle';
+    
+    alertDiv.innerHTML = `
+        <div class="d-flex align-items-center">
+            <i class="fas ${icon} me-2"></i>
+            <span class="flex-grow-1">${message}</span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        // Insertar después del título
-        const title = document.querySelector('.text-gradient');
-        if (title && title.parentNode) {
-            title.parentNode.insertBefore(alertDiv, title.nextSibling);
-        } else {
-            // Fallback: insertar al principio del contenido
-            const container = document.querySelector('.container');
-            if (container) {
-                container.insertBefore(alertDiv, container.firstChild);
-            }
+        </div>
+    `;
+    
+    // Agregar al body
+    document.body.appendChild(alertDiv);
+    
+    // Auto-eliminar después de 5 segundos
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            // Animación de salida
+            alertDiv.style.animation = 'toastSlideOut 0.3s ease-in';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 300);
         }
-        
-        // Auto-eliminar después de 5 segundos
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.parentNode.removeChild(alertDiv);
-            }
-        }, 5000);
+    }, 5000);
+    
+    // Configurar evento de cierre
+    const closeButton = alertDiv.querySelector('.btn-close');
+    if (closeButton) {
+        closeButton.addEventListener('click', function() {
+            alertDiv.style.animation = 'toastSlideOut 0.3s ease-in';
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 300);
+        });
     }
+}
 
     // Advertencia al salir de la página si hay cambios pendientes
     window.addEventListener('beforeunload', function (e) {

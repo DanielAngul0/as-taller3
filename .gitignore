@@ -211,6 +211,3 @@ run_all_tests.py
 
 # Ignorar script para generar hashes de contraseñas
 script_hash_generador.py
-
-# Ocultar archivo Dockerfile de proxy
-/proxy/

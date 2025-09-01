@@ -660,3 +660,52 @@ body {
     border-top: 1px solid var(--gray-light);
 }
 
+/* Estilos para mensajes flash flotantes */
+@keyframes toastSlideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes toastSlideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Estilos específicos para mensajes toast */
+.flash-toast-message {
+    pointer-events: auto;
+}
+
+/* Asegurar que los mensajes no interfieran con otros elementos */
+.flash-toast-message .btn-close {
+    padding: 0.75rem;
+    margin-left: 0.5rem;
+}
+
+/* Ajustar el padding del contenedor principal para evitar solapamiento */
+.container {
+    padding-top: 20px;
+}
+
+/* Estilos para el contenedor de mensajes del sistema */
+#flash-messages-container {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 1rem;
+}
+
+#flash-messages-container .alert {
+    margin-bottom: 0.5rem;
+}
