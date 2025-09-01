@@ -1,8 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Carrito de Compras{% endblock %}
+{% block title %}Carrito de Compras - Tienda Virtual{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Carrito de Compras</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="text-gradient">Carrito de <span class="text-dark">Compras</span></h1>
+        <span class="badge bg-primary rounded-pill p-2">{{ cart_items|length }} items</span>
+    </div>
     
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -16,94 +19,72 @@
     {% endwith %}
 
     {% if cart_items and cart_items|length > 0 %}
-        <div class="table-responsive">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Producto</th>
-                        <th>Precio Unitario</th>
-                        <th>Cantidad</th>
-                        <th>Total</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for item in cart_items %}
-                    <tr id="item-{{ item.id }}">
-                        <td>
-                            <div class="d-flex align-items-center">
-                                {% if item.image_url %}
-                                <img src="{{ item.image_url }}" alt="{{ item.product_name }}" class="img-thumbnail me-3" style="width: 80px; height: 80px; object-fit: cover;">
-                                {% else %}
-                                <div class="bg-secondary d-flex align-items-center justify-content-center me-3" style="width: 80px; height: 80px;">
-                                    <i class="fas fa-image text-white"></i>
-                                </div>
-                                {% endif %}
-                                <div>
-                                    <h6 class="mb-0">{{ item.product_name }}</h6>
-                                    <small class="text-muted">ID: {{ item.product_id }}</small>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="item-price">${{ "%.2f"|format(item.price) }}</td>
-                        <td>
-                            <div class="d-flex align-items-center">
-                                <div class="input-group" style="width: 120px;">
-                                    <button class="btn btn-outline-secondary btn-sm decrease-btn" data-item-id="{{ item.id }}">-</button>
-                                    <input type="number" class="form-control form-control-sm text-center quantity-input" 
-                                           value="{{ item.quantity }}" min="1" data-item-id="{{ item.id }}" 
-                                           data-original-value="{{ item.quantity }}">
-                                    <button class="btn btn-outline-secondary btn-sm increase-btn" data-item-id="{{ item.id }}">+</button>
-                                </div>
-                                <!-- AÑADIR data-item-id A LOS BOTONES DE CONFIRMACIÓN -->
-                                <div class="quantity-actions ms-2" data-item-id="{{ item.id }}" style="display: none;">
-                                    <button class="btn btn-success btn-sm confirm-btn" data-item-id="{{ item.id }}">
-                                        <i class="fas fa-check"></i>
-                                    </button>
-                                    <button class="btn btn-danger btn-sm cancel-btn" data-item-id="{{ item.id }}">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="item-total">${{ "%.2f"|format(item.price * item.quantity) }}</td>
-                        <td>
-                            <button class="btn btn-danger btn-sm remove-item-btn" data-item-id="{{ item.id }}">
-                                <i class="fas fa-trash"></i> Eliminar
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3" class="text-end"><strong>Total:</strong></td>
-                        <td id="cart-total"><strong>${{ "%.2f"|format(total) }}</strong></td>
-                        <td>
-                            <button class="btn btn-warning btn-sm" id="clear-cart-btn">
-                                <i class="fas fa-broom"></i> Vaciar Carrito
-                            </button>
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
+        <div class="cart-container">
+            {% for item in cart_items %}
+            <div class="cart-item" id="item-{{ item.id }}">
+                <img src="{{ item.image_url or 'https://via.placeholder.com/100x100?text=Imagen+no+disponible' }}" 
+                     alt="{{ item.product_name }}" class="cart-item-image">
+                
+                <div class="cart-item-details">
+                    <h5 class="cart-item-name">{{ item.product_name }}</h5>
+                    <p class="cart-item-price mb-1">${{ "%.2f"|format(item.price) }} c/u</p>
+                    <small class="text-muted">ID: {{ item.product_id }}</small>
+                </div>
+                
+                <div class="cart-item-actions">
+                    <div class="quantity-control">
+                        <button class="quantity-btn decrease-btn" data-item-id="{{ item.id }}">-</button>
+                        <input type="number" class="quantity-input" value="{{ item.quantity }}" min="1" 
+                               data-item-id="{{ item.id }}" data-original-value="{{ item.quantity }}">
+                        <button class="quantity-btn increase-btn" data-item-id="{{ item.id }}">+</button>
+                    </div>
+                    
+                    <div class="quantity-actions ms-2" data-item-id="{{ item.id }}" style="display: none;">
+                        <button class="btn btn-success btn-sm confirm-btn" data-item-id="{{ item.id }}">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="btn btn-danger btn-sm cancel-btn" data-item-id="{{ item.id }}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <span class="mx-3 item-total fw-bold">${{ "%.2f"|format(item.price * item.quantity) }}</span>
+                    
+                    <button class="btn btn-danger btn-sm remove-item-btn" data-item-id="{{ item.id }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+            
+            <div class="cart-total">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Total:</h4>
+                    <h3 class="mb-0">${{ "%.2f"|format(total) }}</h3>
+                </div>
+            </div>
         </div>
         
-        <div class="d-flex justify-content-between mt-4">
+        <div class="cart-actions">
             <a href="{{ url_for('products') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left me-2"></i> Seguir Comprando
             </a>
-            <a href="#" class="btn btn-success">
-                <i class="fas fa-check me-2"></i> Finalizar Compra
-            </a>
+            
+            <div>
+                <button class="btn btn-warning me-2" id="clear-cart-btn">
+                    <i class="fas fa-broom me-2"></i> Vaciar Carrito
+                </button>
+                <a href="#" class="btn btn-success">
+                    <i class="fas fa-check me-2"></i> Finalizar Compra
+                </a>
+            </div>
         </div>
     {% else %}
-        <div class="alert alert-info">
-            <h4><i class="fas fa-shopping-cart me-2"></i> Tu carrito está vacío</h4>
-            <p>Agrega algunos productos para continuar con tu compra.</p>
-        </div>
-        <div class="text-center">
-            <a href="{{ url_for('products') }}" class="btn btn-primary">
+        <div class="text-center py-5">
+            <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+            <h3 class="text-muted">Tu carrito está vacío</h3>
+            <p class="text-muted">Agrega algunos productos para continuar con tu compra.</p>
+            <a href="{{ url_for('products') }}" class="btn btn-primary mt-3">
                 <i class="fas fa-store me-2"></i> Explorar Productos
             </a>
         </div>

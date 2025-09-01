@@ -1,24 +1,40 @@
 {% extends "base.html" %}
-{% block title %}Registro{% endblock %}
+{% block title %}Registro - Tienda Virtual{% endblock %}
 {% block content %}
-<h2>Registro</h2>
-<form method="post">
-  <div class="mb-3">
-    <label class="form-label">Nombre de usuario</label>
-    <input class="form-control" name="username" required>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">Email</label>
-    <input class="form-control" type="email" name="email" required>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">Contraseña</label>
-    <input class="form-control" name="password" type="password" required>
-  </div>
-  <div class="mb-3">
-    <label class="form-label">Confirmar Contraseña</label>
-    <input class="form-control" name="confirm_password" type="password" required>
-  </div>
-  <button class="btn btn-primary" type="submit">Registrar</button>
-</form>
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2 class="text-gradient">Crear Cuenta</h2>
+            <p>Únete a nuestra comunidad</p>
+        </div>
+        
+        <form method="post">
+            <div class="mb-3">
+                <label class="form-label">Nombre de usuario</label>
+                <input type="text" class="form-control" name="username" placeholder="Elige un nombre de usuario" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" name="email" placeholder="tu@email.com" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <input type="password" class="form-control" name="password" placeholder="Crea una contraseña segura" required>
+            </div>
+            
+            <div class="mb-4">
+                <label class="form-label">Confirmar Contraseña</label>
+                <input type="password" class="form-control" name="confirm_password" placeholder="Repite tu contraseña" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block mb-3">Crear Cuenta</button>
+            
+            <div class="text-center">
+                <p>¿Ya tienes una cuenta? <a href="{{ url_for('login') }}" class="text-gradient text-decoration-none">Inicia sesión aquí</a></p>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

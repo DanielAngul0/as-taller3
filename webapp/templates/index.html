@@ -14,7 +14,7 @@
         <div class="card-body">
           <h5 class="card-title">{{ p.name }}</h5>
           <p class="card-text">{{ p.description[:80] }}...</p>
-          <p class="fw-bold">{{ p.price }} €</p>
+          <p class="fw-bold">$ {{ p.price }}</p>
           <a href="{{ url_for('products') }}" class="btn btn-primary">Ver más</a>
         </div>
       </div>
