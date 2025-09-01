@@ -1,38 +1,44 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+# api/routes/admin.py
+from fastapi import APIRouter, Depends, HTTPException, status, Body
 from sqlalchemy.orm import Session
 from database import get_db
 from models.user import User
 from models.product import Product
-from fastapi import Body
 
 router = APIRouter()
 
-# Obtener todos los usuarios
-@router.get("/users", tags=["admin"])
-async def get_all_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    return [{
+def serialize_user(user: User) -> dict:
+    return {
         'id': user.id,
         'username': user.username,
         'email': user.email,
         'is_admin': user.is_admin,
         'is_active': user.is_active,
         'created_at': user.created_at.isoformat() if user.created_at else None
-    } for user in users]
+    }
 
-# Obtener todos los productos
-@router.get("/products", tags=["admin"])
-async def get_all_products(db: Session = Depends(get_db)):
-    products = db.query(Product).all()
-    return [{
+def serialize_product(product: Product) -> dict:
+    return {
         'id': product.id,
         'name': product.name,
         'description': product.description,
-        'price': float(product.price),
+        'price': float(product.price) if product.price is not None else None,
         'stock': product.stock,
         'image_url': product.image_url,
         'created_at': product.created_at.isoformat() if product.created_at else None
-    } for product in products]
+    }
+
+# Obtener todos los usuarios (admins arriba, id asc)
+@router.get("/users", tags=["admin"])
+async def get_all_users(db: Session = Depends(get_db)):
+    users = db.query(User).order_by(User.is_admin.desc(), User.id.asc()).all()
+    return [serialize_user(user) for user in users]
+
+# Obtener todos los productos (orden estable por id asc)
+@router.get("/products", tags=["admin"])
+async def get_all_products(db: Session = Depends(get_db)):
+    products = db.query(Product).order_by(Product.id.asc()).all()
+    return [serialize_product(product) for product in products]
 
 # Crear producto (aceptar JSON en el cuerpo)
 @router.post("/products", tags=["admin"], status_code=201)
@@ -54,7 +60,13 @@ async def create_product(
     db.add(product)
     db.commit()
     db.refresh(product)
-    return product
+
+    # Devolver el producto creado y la lista completa ordenada para que la UI pueda refrescar
+    products = db.query(Product).order_by(Product.id.asc()).all()
+    return {
+        "product": serialize_product(product),
+        "products": [serialize_product(p) for p in products]
+    }
 
 # Actualizar producto (aceptar JSON en el cuerpo)
 @router.put("/products/{product_id}", tags=["admin"])
@@ -84,7 +96,13 @@ async def update_product(
     
     db.commit()
     db.refresh(product)
-    return product
+
+    # Devolver producto actualizado + lista ordenada
+    products = db.query(Product).order_by(Product.id.asc()).all()
+    return {
+        "product": serialize_product(product),
+        "products": [serialize_product(p) for p in products]
+    }
 
 # Eliminar producto
 @router.delete("/products/{product_id}", tags=["admin"])
@@ -95,7 +113,13 @@ async def delete_product(product_id: int, db: Session = Depends(get_db)):
     
     db.delete(product)
     db.commit()
-    return {"message": "Producto eliminado exitosamente"}
+
+    # Devolver lista ordenada después de la eliminación
+    products = db.query(Product).order_by(Product.id.asc()).all()
+    return {
+        "message": "Producto eliminado exitosamente",
+        "products": [serialize_product(p) for p in products]
+    }
 
 # Hacer admin a un usuario
 @router.put("/users/{user_id}/make-admin", tags=["admin"])
@@ -110,12 +134,7 @@ async def make_user_admin(user_id: int, db: Session = Depends(get_db)):
     
     return {
         "message": "Usuario convertido en administrador exitosamente",
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "is_admin": user.is_admin
-        }
+        "user": serialize_user(user)
     }
     
 # Quitar privilegios de administrador a un usuario
@@ -131,10 +150,5 @@ async def remove_user_admin(user_id: int, db: Session = Depends(get_db)):
     
     return {
         "message": "Privilegios de administrador removidos exitosamente",
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "is_admin": user.is_admin
-        }
+        "user": serialize_user(user)
     }

@@ -133,10 +133,10 @@ async def update_user_profile(
         "is_active": user.is_active
     }
 
-# Listar todos los usuarios
+# Listar todos los usuarios (ordenados por admin y id)
 @router.get("/")
 async def list_users(db: Session = Depends(get_db)):
-    users = db.query(User).all()
+    users = db.query(User).order_by(User.is_admin.desc(), User.id.asc()).all()
     return [
         {
             "id": user.id,

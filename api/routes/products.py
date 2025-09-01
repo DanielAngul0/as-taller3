@@ -6,10 +6,10 @@ from models.product import Product
 # Crear un router para productos
 router = APIRouter()
 
-# Obtener lista de productos
+# Obtener lista de productos (ordenados por id asc)
 @router.get("/")
 async def get_products(db: Session = Depends(get_db)):
-    products = db.query(Product).all()
+    products = db.query(Product).order_by(Product.id.asc()).all()
     return [
         {
             "id": p.id,
