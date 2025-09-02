@@ -1,11 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from database import get_db
 from models.cart import Cart, CartItem
 from models.product import Product 
 
 # Crear el router para carritos
 router = APIRouter()
+
+# Añadir modelo Pydantic para la actualización
+class CartItemUpdate(BaseModel):
+    quantity: int
 
 @router.get("/")
 async def get_user_cart(user_id: int = Query(...), db: Session = Depends(get_db)):
@@ -72,11 +77,11 @@ async def add_item_to_cart(
         "quantity": item.quantity
     }
 
-
+# Actualizar la cantidad de un producto en el carrito
 @router.put("/items/{item_id}")
 async def update_cart_item(
     item_id: int,
-    quantity: int = Body(...),
+    cart_item_update: CartItemUpdate,  # Cambiar a usar el modelo Pydantic
     db: Session = Depends(get_db)
 ):
     """
@@ -86,10 +91,10 @@ async def update_cart_item(
     if not item:
         raise HTTPException(status_code=404, detail="Item no encontrado")
 
-    if quantity <= 0:
+    if cart_item_update.quantity <= 0:
         raise HTTPException(status_code=400, detail="Cantidad inválida")
 
-    item.quantity = quantity
+    item.quantity = cart_item_update.quantity
     db.commit()
     db.refresh(item)
 

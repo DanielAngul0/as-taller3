@@ -370,17 +370,20 @@ def update_cart_item(item_id):
         if quantity < 1:
             return jsonify({"success": False, "message": "La cantidad debe ser al menos 1"})
         
-        # Llamar a la API para actualizar la cantidad
-        status, data = api_request(f"/carts/items/{item_id}", method='PUT', data={
-            "quantity": quantity
-        })
+        # Llamar a la API para actualizar la cantidad - FORMATO CORREGIDO
+        status, data = api_request(f"/carts/items/{item_id}", method='PUT', 
+                                  data={"quantity": quantity},
+                                  headers={'Content-Type': 'application/json'})
        
         if status == 200:
             return jsonify({"success": True})
         else:
+            # Log detallado del error
+            print(f"DEBUG - Error updating cart item: Status={status}, Data={data}")
             error_msg = data.get('detail', 'Error al actualizar') if isinstance(data, dict) else str(data)
             return jsonify({"success": False, "message": error_msg})
     except Exception as e:
+        print(f"Exception in update_cart_item: {e}")
         return jsonify({"success": False, "message": f"Error interno: {str(e)}"})
 
 # Ruta para eliminar un item del carrito

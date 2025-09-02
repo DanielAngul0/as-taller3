@@ -398,7 +398,7 @@ body {
     min-width: fit-content;
 }
 
-/* Control de cantidad mejorado */
+/* Control de cantidado */
 .quantity-control {
     display: flex;
     align-items: center;
@@ -407,6 +407,7 @@ body {
     overflow: hidden;
     background: white;
     height: 40px;
+    flex-shrink: 0;
 }
 
 .quantity-btn {
@@ -453,21 +454,23 @@ body {
     background-color: rgba(67, 97, 238, 0.05);
 }
 
+/* Estilos para la sección de cantidad */
+.quantity-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 /* Botones de confirmación de cantidad */
 .quantity-actions {
     display: flex;
-    gap: 0.5rem;
-    align-items: center;
+    gap: 0.25rem;
 }
 
+
 .quantity-actions .btn {
-    padding: 0.5rem;
-    border-radius: 50%;
-    width: 35px;
-    height: 35px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
 }
 
 /* Total del item */

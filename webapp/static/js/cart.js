@@ -1,15 +1,25 @@
-// static/js/cart.js
+// Variable para controlar si los eventos ya han sido inicializados
+let cartEventsInitialized = false;
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeCartFunctionality();
 });
 
 function initializeCartFunctionality() {
+    // Si los eventos ya fueron inicializados, no hacerlo again
+    if (cartEventsInitialized) {
+        return;
+    }
+    
     // Variables globales para el carrito
     let itemIdToRemove = null;
     let pendingChanges = {};
 
     // Inicializar eventos del carrito
     initializeCartEvents();
+    
+    // Marcar que los eventos han sido inicializados
+    cartEventsInitialized = true;
     
     // Función para inicializar todos los eventos del carrito
     function initializeCartEvents() {
@@ -173,7 +183,12 @@ function initializeCartFunctionality() {
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('Error en la respuesta del servidor');
+                // Si la respuesta no es OK, intentar obtener el mensaje de error
+                return response.json().then(errorData => {
+                    throw new Error(errorData.message || 'Error en la respuesta del servidor');
+                }).catch(() => {
+                    throw new Error('Error en la respuesta del servidor');
+                });
             }
             return response.json();
         })
@@ -202,7 +217,7 @@ function initializeCartFunctionality() {
         })
         .catch(error => {
             console.error('Error:', error);
-            showFlashMessage('Error al actualizar la cantidad', 'danger');
+            showFlashMessage('Error al actualizar la cantidad: ' + error.message, 'danger');
             throw error;
         });
     }

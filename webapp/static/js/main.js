@@ -1,7 +1,9 @@
 // Funcionalidad JavaScript para la tienda
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeCartFunctionality();
+    if (!document.getElementById('cart-items-count')) {
+        initializeCartFunctionality();
+    }
 });
 
 function initializeCartFunctionality() {
