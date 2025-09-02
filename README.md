@@ -1,3 +1,16 @@
+## **Credenciales de usuarios:**
+
+
+**Contraseñas hasheadas generadas con bcrypt:**
+
+Administrador: **`admin`** Contraseña: **`admin123`**
+
+Usuarios: **`juan`** Contraseña: **`juanUser123`**
+Usuarios: **`maria`** Contraseña: **`marioUser123`**
+Usuarios: **`pedro`** Contraseña: **`pedroUser123`**
+
+> **Nota:** `Los`**usuarios administradores**`pueden `**promover**` y `**denegar**` privilegios de administrador a otros usuarios.`
+
 ## Autor
 ### Estudiante: Daniel Andres Angulo Perez
 
@@ -39,6 +52,8 @@ as-taller3/
 │   ├── routes/
 │   │   ├── __init__.py
 │   │   ├── users.py
+│   │   ├── admin.py
+│   │   ├── decorators.py
 │   │   ├── products.py
 │   │   └── carts.py
 │   └── database.py
@@ -66,7 +81,8 @@ as-taller3/
 │       ├── css/
 │       │   └── style.css
 │       └── js/
-│           └── main.js
+│           ├── main.js
+│           └── cart.js
 └── proxy/
     ├── Dockerfile
     └── nginx.conf
